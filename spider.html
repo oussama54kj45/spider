@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spider-Man Themed Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background: linear-gradient(45deg, #000, #ff0000);
+            position: relative;
+            overflow-x: hidden;
+            color: #fff;
+        }
+
+        .spider-man-title {
+            font-size: 2rem; /* حجم أكبر للتوافق مع الشاشات الصغيرة */
+            background-color: #ff0000;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: inline-block;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            border: 3px solid;
+            border-image: linear-gradient(45deg, red, black) 1;
+            animation: colorChange 3s infinite alternate;
+        }
+
+        @keyframes colorChange {
+            0% { border-color: red; }
+            100% { border-color: black; }
+        }
+
+        .spider-man-title span {
+            font-weight: bold;
+        }
+
+        .spider {
+            color: #ff0000;
+        }
+
+        .man {
+            color: #000;
+        }
+
+        .icon {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: url('movie.png') no-repeat center center;
+            background-size: contain;
+        }
+
+        .icon.left {
+            left: 5%;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: upDown 2s infinite;
+        }
+
+        .icon.right {
+            right: 5%;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: upDown 2s infinite;
+        }
+
+        @keyframes upDown {
+            0% { transform: translateY(-50%) translateY(0); }
+            50% { transform: translateY(-50%) translateY(-20px); }
+            100% { transform: translateY(-50%) translateY(0); }
+        }
+
+        .game-container {
+            margin: 20px auto;
+            width: 90%;
+            max-width: 400px; /* العرض الأقصى للحاوية */
+            background-color: #eee;
+            position: relative;
+            padding: 10px;
+            border: 3px solid;
+            border-image: linear-gradient(45deg, red, black) 1;
+            border-radius: 10px;
+            box-sizing: border-box;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .button-container {
+            margin-top: 20px;
+        }
+
+        .start-button, .stop-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: red;
+            color: white;
+            font-size: 1rem; /* حجم خط مناسب للموبيل */
+            border-radius: 5px;
+            cursor: pointer;
+            border: 2px solid red;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+        }
+
+        .start-button:hover, .stop-button:hover {
+            background-color: black;
+            border-color: black;
+        }
+
+        .game-container canvas {
+            display: block;
+            border: 2px solid #333;
+            margin-top: 20px;
+            background-color: #fff;
+        }
+
+        .touch-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .touch-button {
+            width: 50px;
+            height: 50px;
+            margin: 0 10px; /* مساحة بين الأزرار */
+            background-color: #ff0000;
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .touch-button:active {
+            background-color: #cc0000;
+        }
+
+        @media (pointer: coarse) {
+            .touch-controls {
+                display: flex;
+                justify-content: center;
+                margin-top: 10px;
+            }
+
+            .touch-button {
+                width: 50px;
+                height: 50px;
+                margin: 0 10px;
+                background-color: #ff0000;
+                border: none;
+                border-radius: 50%;
+                color: #fff;
+                font-size: 24px;
+                cursor: pointer;
+                user-select: none;
+                transition: background-color 0.3s ease;
+            }
+
+            .touch-button:active {
+                background-color: #cc0000;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="spider-man-title">
+        Welcome! I'm <span class="spider">Spider</span> <span class="man">Man</span> and this is my game
+    </h1>
+
+    <!-- أيقونات سبايدرمان تتحرك -->
+    <div class="icon left"></div>
+    <div class="icon right"></div>
+
+    <!-- حاوية اللعبة -->
+    <div class="game-container">
+        <canvas id="myCanvas" width="300" height="400"></canvas>
+        <div class="button-container">
+            <button class="start-button" id="startButton">Start Game</button>
+            <button class="stop-button" id="stopButton" style="display: none;">Stop Game</button>
+        </div>
+
+        <!-- أزرار التحكم باللمس -->
+        <div class="touch-controls">
+            <button class="touch-button" id="leftButton">&#8592;</button>
+            <button class="touch-button" id="rightButton">&#8594;</button>
+        </div>
+    </div>
+
+    <!-- كود اللعبة -->
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let ballRadius = 10;
+        let x = canvas.width / 2;
+        let y = canvas.height - 30;
+        let dx = 2;
+        let dy = -2;
+
+        let paddleHeight = 10;
+        let paddleWidth = 75;
+        let paddleX = (canvas.width - paddleWidth) / 2;
+
+        let rightPressed = false;
+        let leftPressed = false;
+
+        let brickRowCount = 3;
+        let brickColumnCount = 5;
+        let brickWidth = 50;
+        let brickHeight = 20;
+        let brickPadding = 10;
+        let brickOffsetTop = 30;
+        let brickOffsetLeft = 30;
+
+        let bricks = [];
+        for (let c = 0; c < brickColumnCount; c++) {
+            bricks[c] = [];
+            for (let r = 0; r < brickRowCount; r++) {
+                bricks[c][r] = { x: 0, y: 0, status: 1 };
+            }
+        }
+
+        let score = 0;
+        let isPaused = false;
+        let isStopped = false;
+        let animationId;
+
+        document.addEventListener('keydown', keyDownHandler, false);
+        document.addEventListener('keyup', keyUpHandler, false);
+
+        // أحداث اللمس
+        document.getElementById('leftButton').addEventListener('touchstart', function(e) {
+            leftPressed = true;
+            e.preventDefault();
+        });
+        document.getElementById('leftButton').addEventListener('touchend', function(e) {
+            leftPressed = false;
+            e.preventDefault();
+        });
+        document.getElementById('rightButton').addEventListener('touchstart', function(e) {
+            rightPressed = true;
+            e.preventDefault();
+        });
+        document.getElementById('rightButton').addEventListener('touchend', function(e) {
+            rightPressed = false;
+            e.preventDefault();
+        });
+
+        function keyDownHandler(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") {
+                rightPressed = true;
+            } else if (e.key === "Left" || e.key === "ArrowLeft") {
+                leftPressed = true;
+            }
+        }
+
+        function keyUpHandler(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") {
+                rightPressed = false;
+            } else if (e.key === "Left" || e.key === "ArrowLeft") {
+                leftPressed = false;
+            }
+        }
+
+        function collisionDetection() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    let brick = bricks[c][r];
+                    if (brick.status === 1) {
+                        if (x > brick.x && x < brick.x + brickWidth && y > brick.y && y < brick.y + brickHeight) {
+                            dy = -dy;
+                            brick.status = 0;
+                            score++;
+                            if (score === brickRowCount * brickColumnCount) {
+                                alert("YOU WIN, CONGRATULATIONS!");
+                                resetGame();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "#0095DD";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+            ctx.fillStyle = "#0095DD";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawBricks() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    if (bricks[c][r].status === 1) {
+                        let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+                        let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+                        bricks[c][r].x = brickX;
+                        bricks[c][r].y = brickY;
+                        ctx.beginPath();
+                        ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                        ctx.fillStyle = "#0095DD";
+                        ctx.fill();
+                        ctx.closePath();
+                    }
+                }
+            }
+        }
+
+        function drawScore() {
+            ctx.font = "16px Arial";
+            ctx.fillStyle = "#0095DD";
+            ctx.fillText("Score: " + score, 8, 20);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBricks();
+            drawBall();
+            drawPaddle();
+            drawScore();
+            collisionDetection();
+
+            if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) {
+                dx = -dx;
+            }
+            if (y + dy < ballRadius) {
+                dy = -dy;
+            } else if (y + dy > canvas.height - ballRadius) {
+                if (x > paddleX && x < paddleX + paddleWidth) {
+                    dy = -dy;
+                } else {
+                    alert("GAME OVER");
+                    resetGame();
+                    return; // Stop the game loop when game over
+                }
+            }
+
+            if (rightPressed && paddleX < canvas.width - paddleWidth) {
+                paddleX += 7;
+            } else if (leftPressed && paddleX > 0) {
+                paddleX -= 7;
+            }
+
+            x += dx;
+            y += dy;
+
+            if (!isPaused && !isStopped) {
+                animationId = requestAnimationFrame(draw);
+            }
+        }
+
+        function resetGame() {
+            // إعادة تعيين الحالة الأساسية
+            x = canvas.width / 2;
+            y = canvas.height - 30;
+            dx = 2;
+            dy = -2;
+            paddleX = (canvas.width - paddleWidth) / 2;
+            score = 0;
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    bricks[c][r].status = 1;
+                }
+            }
+            document.getElementById('startButton').style.display = 'inline-block';
+            document.getElementById('stopButton').style.display = 'none';
+            isStopped = false;
+        }
+
+        document.getElementById('startButton').addEventListener('click', function() {
+            if (!animationId) {
+                draw();
+                this.style.display = 'none';
+                document.getElementById('stopButton').style.display = 'inline-block';
+            }
+        });
+
+        document.getElementById('stopButton').addEventListener('click', function() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+                isStopped = true;
+                document.getElementById('startButton').style.display = 'inline-block';
+                this.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
+
